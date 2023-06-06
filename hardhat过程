@@ -1,0 +1,32 @@
+hardhat过程
+
+1.安装
+
+npm install --save-dev hardhat
+
+2.创建项目
+
+npx hardhat(建议挂代理)
+
+3.编译合约
+
+npx hardhat compile
+
+4.测试合约
+
+npx hardhat test
+
+
+npm install @openzeppelin/contracts
+
+npm install @openzeppelin/test-helpers
+
+npm install @openzeppelin/contracts-upgradeable
+
+
+npm install --save-dev @openzeppelin/hardhat-upgrades
+npm install --save-dev @nomiclabs/hardhat-ethers ethers # peer dependencies
+
+require('@openzeppelin/hardhat-upgrades')
+
+

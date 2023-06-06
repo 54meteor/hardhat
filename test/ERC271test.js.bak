@@ -1,0 +1,129 @@
+const { expect } = require("chai");
+const { ethers, upgrades } = require("hardhat");
+
+const {
+    BN,           // Big Number support
+    constants,    // Common constants, like the zero address and largest integers
+} = require('@openzeppelin/test-helpers')
+
+async function expectR(promise, expectedError){
+  try{
+      await promise
+    }catch(error){
+      let index = error.message.indexOf(expectedError)
+      if(index === -1){
+        expect.fail('Do not have error msg');
+      }
+      return
+    }
+    expect.fail('Expected an exception but none was received');
+}
+
+async function getDT(){
+  const blockNumBefore = await ethers.provider.getBlockNumber()
+  const blockBefore = await ethers.provider.getBlock(blockNumBefore)
+  return blockBefore.timestamp
+}
+
+describe("ERC721", function () {
+  it("tt", async function () {
+    const [owner, addr1] = await ethers.getSigners();
+    // const Greeter = await ethers.getContractFactory("ERC721Mock")
+    // const greeter = await Greeter.deploy("t","5","",owner.address,owner.address);
+    // const greeter = await Greeter.deploy()
+    // await greeter.deployed()
+    // await greeter.__ERC721_init("t","5","",owner.address,owner.address)
+    // expect(await greeter.name()).to.equal("t")
+    //部署合约
+    const Factory = await ethers.getContractFactory("PancakeFactory");
+    const factory = await Factory.deploy(addr1.address)
+    
+    const WETH = await ethers.getContractFactory("WETH9")
+    const weth = await WETH.deploy()
+
+    const Router = await ethers.getContractFactory("PancakeRouter")
+    const router = await Router.deploy(factory.address,weth.address)
+   
+    const TOKEN = await ethers.getContractFactory("SRD")
+    const token = await TOKEN.deploy(router.address,weth.address)
+    
+    await weth.mint()
+//查询余额
+    const tokenBalance = await token.balanceOf(owner.address)
+    console.log("owner token balance:" + tokenBalance.toString())
+
+    const wethBalance = await weth.balanceOf(owner.address)
+    console.log("owner weth balance:" + wethBalance.toString())
+//创建交易对    
+    await factory.createPair(token.address,weth.address)
+    const pair = await factory.getPair(token.address,weth.address)
+    console.log("pair address:" + pair)
+
+    const pair1 = await router.getPair(token.address,weth.address)
+    // console.log(pair1)
+
+    const time = await getDT()
+//授权router
+    await token.approve(router.address,10 ** 12)
+//添加流动性
+    await router.addLiquidityETH(
+      token.address,
+      10 ** 10,
+      10 ** 10,
+      10 ** 8,
+      owner.address,time + 10000,{"value":10**8})
+
+    const path = await token.path_SRD_WBNB(0)
+    const path1 = await token.path_SRD_WBNB(1)
+    // console.log("token合约地址：" + token.address)
+    // console.log(path)
+    // console.log(path1)
+    // console.log(weth.address)
+// 查询余额
+    console.log("==============")
+    const feeBalace = await token.balanceOf(owner.address)
+    console.log("owner token balance:" + feeBalace.toString())
+    const wBalace = await owner.getBalance()
+    console.log("owner BNB balance:" + wBalace.toString())
+// 查询对应数据
+    console.log("==============")
+    const amountsOut = await router.getAmountsOut(10 ** 3,[token.address,weth.address])
+    console.log("amounts info:" + amountsOut.toString())
+//调用test方法
+    await token.test(10 ** 3,9,owner.address)
+    await token.transfer(addr1.address,1000000000000000)
+// 查询余额
+    console.log("==============")
+    const feeBalace1 = await token.balanceOf(owner.address)
+    console.log("owner token balance:" + feeBalace1.toString())
+    const wBalace1 = await owner.getBalance()
+    console.log("owner BNB balance:" + wBalace1.toString())
+    console.log("==============")
+    // const instance = await upgrades.deployProxy(Box,["t","5","",owner.address.toString(),owner.address.toString()]);
+    // const box = await instance.deployed()
+    // console.log(box)
+    // // console.log(Box)
+    // expect(await box.name()).to.equal("t")
+
+    // await expectR(greeter.mint(owner.address,1),"msg")
+
+    // const BoxV2 = await ethers.getContractFactory("ERC721MockV2");
+    // const upgraded = await upgrades.upgradeProxy(instance.address, BoxV2,["t","5","",owner.address.toString(),owner.address.toString()]);
+    // console.log(await upgraded.getData())
+    // console.log(upgraded)
+    // console.log(BoxV2)
+
+    // try{
+    //   await greeter.mint(owner.address,1)
+    // }catch(error){
+    //   console.log(error.message.indexOf("msg"))
+    // }
+
+    // const setGreetingTx = await greeter.setGreeting("Hola, mundo!");
+
+    // // wait until the transaction is mined
+    // await setGreetingTx.wait();
+
+    // expect(await greeter.greet()).to.equal("Hola, mundo!");
+  });
+});
